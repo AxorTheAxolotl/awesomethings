@@ -829,7 +829,7 @@ if RetrofiyConfig.RetroCoreGui then
 		Username.Position = HealthBarNamePosition[HealthVisibility]
 	end)
 	
-	RetroGui.DisplayOrder = 0
+	RetroGui.DisplayOrder = -1
 end
 
 if RetrofiyConfig.RetroWorkspace then
