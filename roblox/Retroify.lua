@@ -8,7 +8,8 @@
 	2016 client simulator
 	
 	Developed by Beyond 5D#5878
-	https://discord.gg/4rYMxBMQvv
+	Edited to support the latest version by AxorTheAxolotl on github
+	(literally just removed the functions to make it work lol)
 --]]
 
 --[[
@@ -188,7 +189,7 @@ end)
 -- End of stolen code
 
 local VirtualMouseIconEnabled = UserInputService.MouseIconEnabled
-UserInputService.MouseIconEnabled = true
+UserInputService.MouseIconEnabled = false
 
 if not game:IsLoaded() then
 	game.Loaded:Wait()
@@ -254,12 +255,16 @@ makefolder("Retrofiy")
 makefolder("Retrofiy\\Patches")
 --DownloadFiles("Retrofiy")
 
-local DefaultMouse = readfile("Retrofiy/Assets/Textures/ArrowFarCursor.png")
+local DefaultMouse = GetAsset("Retrofiy/Assets/Textures/ArrowFarCursor.png")
 
-local FakeMouse = Drawing.new("Image")
-FakeMouse.Data = DefaultMouse
-FakeMouse.Position = Vector2.new(Mouse.X - 32, Mouse.Y)
-FakeMouse.Size = Vector2.new(64, 64)
+local FakeMouseGui = Instance.new("ScreenGui")
+FakeMouseGui.Parent = CoreGui
+local FakeMouse = Instance.new("ImageLabel")
+FakeMouse.Parent = FakeMouseGui
+FakeMouse.BackgroundTransparency = 1
+FakeMouse.Image = DefaultMouse
+FakeMouse.Position = UDim2.new(0, Mouse.X - 32, 0, Mouse.Y - 32)
+FakeMouse.Size = UDim2.new(0, 64, 0, 64)
 FakeMouse.Visible = VirtualMouseIconEnabled
 
 local OldNewIndex
@@ -282,7 +287,7 @@ OldIndex = hookmetamethod(game, "__index", newcclosure(function(self, property)
 end))
 
 Mouse.Move:Connect(function()
-	FakeMouse.Position = Vector2.new(Mouse.X - 32, Mouse.Y)
+	FakeMouse.Position = UDim2.new(0, Mouse.X - 32, 0, Mouse.Y - 32)
 end)
 
 local IconReplacement = {
@@ -300,12 +305,12 @@ local function ApplyMouseHover(button)
 	if button:IsA("GuiObject") then
 		button.MouseEnter:Connect(function()
 			if button.Active then
-				FakeMouse.Data = readfile("Retrofiy/Assets/Textures/ArrowCursor.png")
+				FakeMouse.Image = GetAsset("Retrofiy/Assets/Textures/ArrowCursor.png")
 			end
 		end)
 
 		button.MouseLeave:Connect(function()
-			FakeMouse.Data = DefaultMouse
+			FakeMouse.Image = DefaultMouse
 		end)
 	end
 end
