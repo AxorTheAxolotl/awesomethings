@@ -8,7 +8,7 @@
 	2016 client simulator
 	
 	Developed by Beyond 5D#5878
-	Edited to support the latest version by AxorTheAxolotl on github
+	Edited to support the latest Roblox version by AxorTheAxolotl on GitHub
 	(literally just removed the functions to make it work lol)
 --]]
 
@@ -215,10 +215,9 @@ local function Connect(...)
 	return table.concat({...}, "/")
 end
 
---[[ Their github acc is just gone, so no point in keeping this running.
 local function DownloadFiles(directory)
 	local _, Error = pcall(function()
-		for _, item in pairs(HttpService:JSONDecode(game:HttpGet(Connect("https://api.github.com/repos/BeyondThe5D/Retrofiy/contents", directory)))) do
+		for _, item in pairs(HttpService:JSONDecode(game:HttpGet(Connect("https://api.github.com/repos/AxorTheAxolotl/awesomethings/contents/roblox/Retroify", directory)))) do
 			local NewPath = Connect(directory, item["name"])
 
 			if item["type"] == "dir" then
@@ -249,11 +248,10 @@ local function DownloadFiles(directory)
 		})
 	end
 end
---]]
 
 makefolder("Retrofiy")
 makefolder("Retrofiy\\Patches")
---DownloadFiles("Retrofiy")
+DownloadFiles("Retrofiy")
 
 local DefaultMouse = GetAsset("Retrofiy/Assets/Textures/ArrowFarCursor.png")
 
@@ -384,15 +382,19 @@ if RetrofiyConfig.RetroCoreGui then
 	local CanTogglePlayerlist = true
 	local ChosenPlayerlistVisibility = CanTogglePlayerlist
 	
-	CoreGui.TopBarApp.Enabled = false
-	CoreGui.RoactAppExperimentProvider.Enabled = false
-
+	CoreGui.TopBarApp.TopBarApp.Enabled = false
+	local roactProvider = game:GetService("CoreGui"):FindFirstChild("RoactAppExperimentProvider")
+	if roactProvider then
+		CoreGui.RoactAppExperimentProvider.Enabled = false
+	end
+	
 	local Topbar = Instance.new("Frame")
-	Topbar.Active = true
+	Topbar.Active = false
 	Topbar.BackgroundColor3 = Color3.fromRGB(31, 31, 31)
 	Topbar.BackgroundTransparency = Player.PlayerGui:GetTopbarTransparency()
 	Topbar.BorderSizePixel = 0
 	Topbar.Size = UDim2.new(1, 0, 0, 36)
+    Topbar.Selectable = false
 	Topbar.Parent = RetroGui
 	local PlayerlistContainer = Instance.new("ScrollingFrame")
 	PlayerlistContainer.AnchorPoint = Vector2.new(1, 0)
@@ -827,6 +829,7 @@ if RetrofiyConfig.RetroCoreGui then
 		end
 
 		Topbar.BackgroundTransparency = Player.PlayerGui:GetTopbarTransparency()
+	    --Topbar.BackgroundTransparency = 1
 		BackpackButton.Visible = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
 		ChatButton.Visible = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Chat)
 		HealthBar.Visible = HealthVisibility
