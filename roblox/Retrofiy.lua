@@ -43,9 +43,10 @@ pcall(function() getgenv().RetrofiyLoaded = true end)
 local RetrofiyConfig = {
 	RetroLighting = true, -- [R] -- Force disables lighting properties that weren't in 2016, uses compatibility Techology and deletes effects not seen in 2016
 	RetroCoreGui = true, -- [B] -- Replaces the Core Gui with a 2016 Core Gui (Playerlist, topbar, etc)
+	RetroDevConsole = true, -- [R] -- Replaces the Developer Console with an old version from 2014(?)-2018
 	RetroWorkspace = true, -- [R] -- Uses old materials, disables terrain decoration, only allows brick colors and returns 2016 studs
-	RetroCharacters = false, -- [B] -- Displays health bars above the heads of characters & returns old oof sound
-	RetroChat = true, -- [R] -- If default chat is enabled it will convert it to the 2016 chat
+	RetroCharacters = false, -- [B] -- Displays health bars above the heads of characters & returns old oof sound (yes I know the sound is still here, but keeping this function anyway lol)
+	RetroChat = false, -- [L] -- If default chat is enabled it will convert it to the 2016 chat
 	BCOnly = true -- [O] -- Makes all premium players appear as BC players instead of it being User ID linked
 }
 
@@ -215,21 +216,27 @@ local function Connect(...)
 	return table.concat({...}, "/")
 end
 
-local function DownloadFiles(directory)
-	local _, Error = pcall(function()
-		for _, item in pairs(HttpService:JSONDecode(game:HttpGet(Connect("https://api.github.com/repos/AxorTheAxolotl/awesomethings/contents/roblox/Retrofiy", directory)))) do
-			local NewPath = Connect(directory, item["name"])
+local function DownloadFiles(gitDir, localDir)
+	local success, err = pcall(function()
+		local response = HttpService:JSONDecode(game:HttpGet(gitDir))
 
-			if item["type"] == "dir" then
-				makefolder(NewPath)
-				DownloadFiles(NewPath)
-			elseif item["type"] == "file" and not isfile(NewPath) then
-				writefile(NewPath, game:HttpGet(item["download_url"]))
+		for _, item in ipairs(response) do
+			local NewPath = Connect(localDir, item.name)
+
+			if item.type == "dir" then
+				if not isfolder(NewPath) then
+					makefolder(NewPath)
+				end
+				DownloadFiles(item.url, NewPath)
+			elseif item.type == "file" then
+				if not isfile(NewPath) then
+					writefile(NewPath, game:HttpGet(item.download_url))
+				end
 			end
 		end
 	end)
 
-	if Error then
+	if not success then
 		local Response = Instance.new("BindableFunction")
 		Response.OnInvoke = function(answer)
 			if answer == "Yes" then
@@ -251,7 +258,7 @@ end
 
 makefolder("Retrofiy")
 makefolder("Retrofiy\\Patches")
-DownloadFiles("Retrofiy")
+DownloadFiles("https://api.github.com/repos/AxorTheAxolotl/awesomethings/contents/roblox/Retrofiy", "Retrofiy")
 
 local DefaultMouse = GetAsset("Retrofiy/Assets/Textures/ArrowFarCursor.png")
 
@@ -507,8 +514,8 @@ if RetrofiyConfig.RetroCoreGui then
 	local BackpackButton = CreateIcon(UDim2.new(0, 22, 0, 28), BackpackTextures[CoreGui.RobloxGui.Backpack.Inventory.Visible], 0)
 
 	ChatButton.MouseButton1Down:Connect(function()
-		if Chat.LoadDefaultChat and Player.PlayerGui:FindFirstChild("Chat") then
-			Player.PlayerGui.Chat.Frame.Visible = not Player.PlayerGui.Chat.Frame.Visible
+		if Chat.LoadDefaultChat and CoreGui:FindFirstChild("ExperienceChat") then
+			CoreGui.ExperienceChat.appLayout.Visible = not CoreGui.ExperienceChat.appLayout.Visible
 		end
 	end)
 
@@ -681,9 +688,9 @@ if RetrofiyConfig.RetroCoreGui then
 		end
 	end)
 
-	if Chat.LoadDefaultChat and Player.PlayerGui:FindFirstChild("Chat") then -- Need to properly check if this is how it would work
-		Player.PlayerGui.Chat.Frame.Changed:Connect(function()
-			ChatButton.ImageLabel.Image = GetAsset("Retrofiy/Assets/Textures/" .. ChatTextures[Player.PlayerGui.Chat.Frame.Visible])
+	if Chat.LoadDefaultChat and CoreGui:FindFirstChild("ExperienceChat") then
+			CoreGui.ExperienceChat.appLayout.Changed:Connect(function()
+			ChatButton.ImageLabel.Image = GetAsset("Retrofiy/Assets/Textures/" .. ChatTextures[CoreGui.ExperienceChat.appLayout.Visible])
 		end)
 	end
 
@@ -840,6 +847,27 @@ if RetrofiyConfig.RetroCoreGui then
 	RetroGui.DisplayOrder = -1
 end
 
+if RetrofiyConfig.RetroDevConsole then
+	-- snagged from infinite yield... sorry, wally!!!
+	local _, str = pcall(function()
+		return game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/console.lua", true)
+	end)
+
+	local s, e = loadstring(str)
+	if typeof(s) ~= "function" then
+		return
+	end
+
+	local success, message = pcall(s)
+	if (not success) then
+		if printconsole then
+			printconsole(message)
+		elseif printoutput then
+			printoutput(message)
+		end
+	end
+end
+
 if RetrofiyConfig.RetroWorkspace then
 	local Surface = {"BackSurface", "BottomSurface", "FrontSurface", "LeftSurface", "RightSurface", "TopSurface"}
 	local _Faces = {"Back", "Bottom", "Front", "Left", "Right", "Top"}
@@ -978,46 +1006,70 @@ if RetrofiyConfig.RetroCharacters then
 end
 
 if RetrofiyConfig.RetroChat then
-	if Chat.LoadDefaultChat and Player.PlayerGui:FindFirstChild("Chat") then -- Could be optimised/Rewritten (Might be better to just straight up use the 2016 chat code)
-		OriginalChat = Player.PlayerGui.Chat
+	if Chat.LoadDefaultChat and CoreGui.ExperienceChat.Enabled then -- Could be optimised/Rewritten (Might be better to just straight up use the 2016 chat code)
+		OriginalChat = CoreGui.ExperienceChat
 
-		local ChatFrame = OriginalChat.Frame
-		ChatFrame.ChatBarParentFrame.Position = UDim2.new(0, 0, 1, -23)
-		ChatFrame.ChatBarParentFrame.Size = UDim2.new(1, 0, 0, 32)
-		ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Position = UDim2.new(0, 7, 0, 5)
-		ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Size = UDim2.new(1, -14, 1, -10)
-		ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Frame.Position = UDim2.new(0, 7, 0, 2)
-		local Scroller = ChatFrame.ChatChannelParentFrame["Frame_MessageLogDisplay"].Scroller
-		Scroller.UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+		local ChatFrame = OriginalChat.appLayout
+		ChatFrame.topBorder:Destroy()
+		ChatFrame.bottomBorder:Destroy()
+		ChatFrame.chatWindow.BackgroundColor3 = Vector3.new(0, 0, 0)
+		ChatFrame.chatInputBar.UIPadding:Destroy()
+		ChatFrame.chatInputBar.BackgroundColor3 = Vector3.new(0, 0, 0)
+		ChatFrame.chatInputBar.Position = UDim2.new(0, 0, 1, -23)
+		ChatFrame.chatInputBar.Size = UDim2.new(1, 0, 0, 40)
+		ChatFrame.chatInputBar.Background.Corner:Destroy()
+		ChatFrame.chatInputBar.Background.BorderSizePixel = 0
+		ChatFrame.chatInputBar.Background.AutomaticSize = Enum.AutomaticSize.None
+		ChatFrame.chatInputBar.Background.Position = UDim2.new(0, 0, 0, 0)
+		ChatFrame.chatInputBar.Background.Size = UDim2.new(1, 0, 1, 0)
+		ChatFrame.chatInputBar.Background.Container.AutomaticSize = Enum.AutomaticSize.None
+		ChatFrame.chatInputBar.Background.Container.BorderSizePixel = 0
+		ChatFrame.chatInputBar.Background.Container.Position = UDim2.new(0, 6, 0, 6)
+		ChatFrame.chatInputBar.Background.Container.Size = UDim2.new(1, -12, 1, -12)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.UIPadding:Destroy()
+		ChatFrame.chatInputBar.Background.Container.TextContainer.AutomaticSize = Enum.AutomaticSize.None
+		ChatFrame.chatInputBar.Background.Container.TextContainer.Position = UDim2.new(0, 6, 0, 6)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.Size = UDim2.new(1, -12, 0, -12)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.AnchorPoint = Vector2.new(0, 0)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.AutomaticSize = Enum.AutomaticSize.None
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.Position = UDim2.new(0, 0, 0, 0)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.Size = UDim2.new(1, -22, 0, 0)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox.Position = UDim2.new(0, 6, 0, 0)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox.Size = UDim2.new(1, 0, 1, 0)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox.TextYAlignment = Enum.TextYAlignment.Center
+		local Scroller = ChatFrame.chatWindow.scrollingView.bottomLockedScrollView.RCTScrollView
+		Scroller.RCTScrollContentView.VerticalLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
-		ChatFrame.ChatChannelParentFrame.Size = UDim2.new(1, 0, 1, -27)
+		ChatFrame.chatWindow.scrollingView.Size = UDim2.new(1, 0, 1, -27)
 
-		for _, messages in pairs(Scroller:GetChildren()) do
+		for _, messages in pairs(Scroller.RCTScrollContentView:GetChildren()) do
 			local TextLabel = messages:FindFirstChildOfClass("TextLabel")
 
-			if TextLabel and TextLabel.Text == "Chat '/?' or '/help' for a list of chat commands." then
+			if TextLabel and TextLabel.Text == "<font color=\"#d4d4d4\">Only people in similar age groups and your Trusted Connections can chat with you.</font>" then
+				TextLabel.RichText = false
 				TextLabel.Text = "Please chat '/?' for a list of commands"
 			end
 		end
 
-		ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Frame.ChatBar.Focused:Connect(function()
-			ChatFrame.ChatBarParentFrame.Size = UDim2.new(1, 0, 0, 40)
-			ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Frame.Position = UDim2.new(0, 7, 0, 6)
+		ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox.Focused:Connect(function()
+			--ChatFrame.chatWindow.Size = UDim2.new(1, 0, 0, 40)
+			
 			repeat
-				ChatFrame.ChatBarParentFrame.Frame.BoxFrame.BackgroundTransparency = 0.1
-				ChatFrame.ChatBarParentFrame.Frame.BoxFrame:GetPropertyChangedSignal("BackgroundTransparency"):Wait()
+				ChatFrame.chatWindow.BackgroundTransparency = 0.66
+				ChatFrame.chatInputBar.BackgroundTransparency = 0.66
+				ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox.TextStrokeTransparency = 1
+				ChatFrame.chatInputBar.Background.Container.BackgroundTransparency = 0.1
 			until
-			not ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Frame.ChatBar:IsFocused()
-			ChatFrame.ChatBarParentFrame.Size = UDim2.new(1, 0, 0, 32)
-			ChatFrame.ChatBarParentFrame.Frame.BoxFrame.Frame.Position = UDim2.new(0, 7, 0, 2)
+			not ChatFrame.chatInputBar.Background.Container.TextContainer.TextBoxContainer.TextBox:IsFocused()
+			--ChatFrame.chatWindow.Size = UDim2.new(1, 0, 0, 32)
 		end)
 
-		Scroller.ChildAdded:Connect(function(object)
+		Scroller.RCTScrollContentView.ChildAdded:Connect(function(object)
 			if object:FindFirstChildOfClass("TextLabel") then
 				local Message = object:FindFirstChildOfClass("TextLabel")
 
 				if not Message:FindFirstChildOfClass("TextButton") then
-					if Message.Text:find("Your friend ") then
+					if Message.Text:find("Your connection ") then
 						RunService.RenderStepped:Wait()
 						object:Destroy()
 					end
